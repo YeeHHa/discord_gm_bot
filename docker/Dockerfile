@@ -2,7 +2,11 @@ FROM rust:bullseye
 
 WORKDIR /usr/src/discord_gm_bot
 
-COPY . .
+ADD src/ /usr/src/discord_gm_bot/src
+COPY ./Cargo.toml .
+
+RUN ls -lrta 
+
 
 RUN cargo install --path .
 

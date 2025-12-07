@@ -146,19 +146,19 @@ async fn pong(header: HeaderMap, body: Json<Interaction>) -> impl IntoResponse {
             Ok(p_s) => p_s,
             Err(e) => {
                 log::debug!("unable to create payload and signature");
-                return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
+                return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::Pong { r#type: 1}))
             }
         };   
        
         if !ping_verifier.verify(&payload_sig.0, &payload_sig.1) {
-            return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::ResponseOject { r#type: 1, data: None})) 
+            return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::Pong { r#type: 1})) 
         }
 
 
-        return (StatusCode::OK, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
+        return (StatusCode::OK, Json(discord_data_structs::Pong { r#type: 1}))
     }
 
-    return  (StatusCode::UNAUTHORIZED, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}));
+    return  (StatusCode::UNAUTHORIZED, Json(discord_data_structs::Pong { r#type: 1}));
 }
 
 

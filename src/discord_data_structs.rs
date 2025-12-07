@@ -20,7 +20,10 @@ pub struct ResponseOject {
     pub r#type: u8,
     pub data: Option<MessageObject>
 }
-
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Pong {
+    pub r#type: u8,
+}
 #[derive(Deserialize, Serialize, Debug)]
 pub struct MessageObject{
     pub content: String
