@@ -6,8 +6,10 @@ pub struct Interaction {
     pub id: String,
     pub application_id: String,
     pub r#type: u8,
-    pub guild_id: String,
-    pub channel_id: String,
+    pub token: u8,
+    pub version: u8,
+    pub guild_id: Option<String>,
+    pub channel_id: Option<String>,
     pub data: Option<AppCommand>   
 }
 #[derive(Serialize, Deserialize, Debug)]
