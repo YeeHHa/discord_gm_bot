@@ -196,8 +196,33 @@ async fn action(
     headers: HeaderMap,
     Json(body): Json<Interaction>
     ) -> impl IntoResponse {
-        
-    let p = Path::new("test_output.json");
+
+    let mut file_name: String = String::from("application_test.json");
+    let interaction_type = body.r#type;
+
+    if interaction_type == 1 {
+        file_name = String::from("ping_test.json");
+
+        let ping_verifier: PingVerifier = PingVerifier::new();
+
+        let payload_sig = match ping_verifier.prepare(&headers, &body)  {
+            Ok(p_s) => p_s,
+            Err(e) => {
+                log::debug!("unable to create payload and signature");
+                return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
+            }
+        };   
+       
+        if !ping_verifier.verify(&payload_sig.0, &payload_sig.1) {
+            return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::ResponseOject { r#type: 1, data: None})) 
+        }
+
+
+        return (StatusCode::OK, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
+    } 
+
+
+    let p = Path::new(&file_name);
 
     log::info!("opening file {}", p.display());
     
@@ -211,11 +236,11 @@ async fn action(
     match file.write_all(&buf.as_bytes()){
         Ok(a) => {
             log::info!("file written");
-            StatusCode::OK
+            (StatusCode::OK, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
         },
         Err(e) => {
             log::error!("couldn't write to file {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
         }
     }
 
