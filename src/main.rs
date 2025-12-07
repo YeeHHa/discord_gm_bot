@@ -1,8 +1,14 @@
 use axum::extract;
 use tokio::{self, net::TcpListener};
 use log;
-use std::{fs::File, io::Write};
-use std::path::Path;
+use std::fs;
+use std::str::FromStr;
+use std::{
+    fs::File, 
+    io::Write,
+    path::Path,
+    env
+};
 
 use env_logger;
 use axum::{
@@ -33,7 +39,20 @@ use pingVerifier::PingVerifier;
 
 pub mod discord_data_structs;
 use discord_data_structs::Interaction;
-use crate::{campaign::Campaign, discord_data_structs::{MessageObject, ResponseOject}};
+use crate::{
+    campaign::Campaign, 
+    discord_data_structs::{
+        MessageObject, 
+        ResponseOject,
+        Commands,
+        Command
+    }
+};
+use reqwest::{
+    Client,
+    Url,
+    header
+};
 
 
 
@@ -42,7 +61,53 @@ struct AppState {
     campaigns: Mutex<Vec<Campaign>>
 }
 
+async fn install_commands(){
+    let discord_app_id = env::var("DISCORD_APP_ID")
+        .expect("DISCORD_APP_ID env variable must be set");
+    let discord_token: String = env::var("DISCORD_TOKEN")
+        .expect("DISCORD_TOKEN env variable must be set");
 
+    let commands_path = Path::new("commands.json");
+    
+    let mut commands_string: String = fs::read_to_string(&commands_path).expect("could not read commands.json file");
+
+    let mut current_commands: Commands = serde_json::from_str(&commands_string).expect("commands.json file not correctly formatted");
+
+    let client: Client = Client::new();
+
+    let endpoint = format!("https://discord.com/api/v10/applications/{}/commands", discord_app_id);
+    let endpoint = Url::from_str(&endpoint)
+        .expect("could not create url for installing dicord app commands");
+
+    let auth: header::HeaderName =  header::HeaderName::from_str("Authorization")
+        .expect("could not make Autheration header");
+
+    let auth_val: String = format!("Bot {}", discord_token);
+    let auth_val: header::HeaderValue = header::HeaderValue::from_str(&auth_val)
+        .expect("coudl not create auth header value");
+
+    let mut headermap: header::HeaderMap = HeaderMap::new();
+    headermap.insert(auth, auth_val);
+
+    for command in current_commands.commands{
+        log::info!("installing command {}", command.name);
+        let res = client.post(endpoint.clone())
+            .headers(headermap.clone())
+            .json(&command)
+            .send()
+            .await;       
+
+        match res {
+            Ok(response) => {
+                log::info!("successfully installed command {}\n{:?}",command.name, response )
+            },
+            Err(e) => {
+                log::error!("could not install command {}\n{:?}", command.name, e);
+            }
+        } 
+    }
+
+}
 #[tokio::main]
 async fn main() {
     env_logger::init();
@@ -56,6 +121,9 @@ async fn main() {
             campaigns: Mutex::new(campaigns)
         }
     );
+
+    //install commands
+    install_commands().await;
  
     let app = Router::new()
         .route("/", post(pong))

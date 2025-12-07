@@ -1,0 +1,15 @@
+{
+    "commands":[
+        {
+            "name": "action",
+            "type": 1,
+            "description": "subit what action you want to take in the campaign"
+            
+        },
+        {
+            "name": "init",
+            "type": 1,
+            "description": "start a new campagin"
+        }
+    ]
+}
