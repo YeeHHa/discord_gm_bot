@@ -27,3 +27,15 @@ pub struct MessageObject{
 }
 
 
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Command {
+    pub name: String,
+    pub r#type: u8,
+    pub description: String
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Commands {
+    pub commands: Vec<Command>
+}
+
