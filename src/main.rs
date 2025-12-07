@@ -126,7 +126,7 @@ async fn main() {
     install_commands().await;
  
     let app = Router::new()
-        .route("/", post(pong))
+        .route("/interactions", post(pong))
         .route("/init", post(init))
         .route("/action", post(action))
         .with_state(app_state);
@@ -136,7 +136,8 @@ async fn main() {
 }
 
 async fn pong(header: HeaderMap, body: Json<Interaction>) -> impl IntoResponse {
-
+    log::info!("VERIFICAITON OF PING BEGIN");
+    log::info!("{:?}", body);
     let interaction_type = body.r#type;
     if interaction_type == 1 {
         let ping_verifier: PingVerifier = PingVerifier::new();
