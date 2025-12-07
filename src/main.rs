@@ -168,7 +168,10 @@ async fn init(
     body: Json<Interaction> ) -> impl IntoResponse {
 
     let interaction_type = body.r#type;
-
+    let channel_id = match &body.channel_id{
+        Some(c) => c.clone(),
+        None => String::from("")
+    };
     if interaction_type == 1 {
         let ping_verifier: PingVerifier = PingVerifier::new();
 
@@ -194,7 +197,7 @@ async fn init(
             Ok(lock) => {
                 for campaign in &*lock{
                     log::debug!("{:?}", campaign);
-                    if campaign.channel_id == body.channel_id {
+                    if campaign.channel_id == channel_id {
                         if campaign.active == true { 
                             let res_message = MessageObject {
                                 content: String::from("A campaign for this channel already exisits and is currently active")
@@ -229,11 +232,11 @@ async fn init(
          
     }
     {
-        log::info!("Creating new campaign for channel {}", body.channel_id);
+        log::info!("Creating new campaign for channel {}", channel_id);
 
         match app_state.campaigns.lock().as_mut() {
             Ok(lock) => {
-                let campaign: Campaign = Campaign::new(&body.channel_id);
+                let campaign: Campaign = Campaign::new(&channel_id);
 
                 lock.push(campaign);
 
