@@ -135,25 +135,29 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn pong(header: HeaderMap, body: String) -> impl IntoResponse {
+async fn pong(header: HeaderMap, body: Json<Interaction>) -> impl IntoResponse {
 
-/*
-    let ping_verifier: PingVerifier = PingVerifier::new();
+    let interaction_type = body.r#type;
+    if interaction_type == 1 {
+        let ping_verifier: PingVerifier = PingVerifier::new();
 
-    log::info!("this is the headers {:?}", header);
-
-    let payload_sig = match ping_verifier.prepare(&header, &body)  {
-        Ok(p_s) => p_s,
-        Err(e) => {
-            return (StatusCode::UNAUTHORIZED, "\"type\": 1")
+        let payload_sig = match ping_verifier.prepare(&header, &body)  {
+            Ok(p_s) => p_s,
+            Err(e) => {
+                log::debug!("unable to create payload and signature");
+                return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
+            }
+        };   
+       
+        if !ping_verifier.verify(&payload_sig.0, &payload_sig.1) {
+            return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::ResponseOject { r#type: 1, data: None})) 
         }
-    };
 
-    match ping_verifier.verify(&payload_sig.0, &payload_sig.1) {
-        true    => (StatusCode::OK, "\"type\": 1"),
-        false   => (StatusCode::UNAUTHORIZED, "\"type\": 1 from pong") 
+
+        return (StatusCode::OK, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
     }
-    */
+
+    return  (StatusCode::UNAUTHORIZED, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}));
 }
 
 
