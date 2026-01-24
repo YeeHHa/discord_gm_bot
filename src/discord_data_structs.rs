@@ -16,8 +16,8 @@ pub struct Interaction {
     #[serde(skip)]
     pub member: Option<String>,
     pub user: User,   
-    pub token: u8,
-    pub version: u8,
+    pub token: String,
+    pub version: u32,
     #[serde(skip)]
     pub message: Option<String>,
     pub app_permissions: String,
