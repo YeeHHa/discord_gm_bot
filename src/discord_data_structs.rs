@@ -34,8 +34,10 @@ pub struct Interaction {
     pub locale: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub guild_locale: Option<String>,
-    pub entitlements: Vec<Entitlement>,
-    pub authorizing_integration_owners: AuthorizingIntegrationOwners, 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub entitlements: Option<Vec<Entitlement>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub authorizing_integration_owners: Option<AuthorizingIntegrationOwners>, 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub context: Option<String>,
     pub attachment_size_limit: u32,
