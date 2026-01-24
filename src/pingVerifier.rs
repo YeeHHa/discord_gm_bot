@@ -1,11 +1,7 @@
 use hex;
-use core::sync;
 use std::env;
-use std::env::VarError;
 use std::error::Error;
 use axum::http::{
-    HeaderName,
-    HeaderValue,
     HeaderMap
 };
 use ed25519_dalek::{
@@ -41,7 +37,7 @@ impl PingVerifier{
         } 
     }
 
-    pub fn verify(&self, payload: &str, signature: &str) -> bool {
+    pub fn verify(&self, payload: &Vec<u8>, signature: &str) -> bool {
         let mut sig_byte_array: [u8; SIGNATURE_LENGTH] = [0; SIGNATURE_LENGTH];
 
         match hex::decode_to_slice(&signature, &mut sig_byte_array) {
@@ -54,9 +50,9 @@ impl PingVerifier{
         
         let sig: Signature =  Signature::from_bytes(&sig_byte_array); 
 
-        log::debug!("signature\n{}\npayload\n{}\n\t", sig, payload);
+        // log::debug!("signature\n{}\npayload\n{}\n\t", sig, payload);
 
-        match self.verifying_key.verify_strict(&payload.as_bytes(), &sig) {
+        match self.verifying_key.verify_strict(&payload, &sig) {
             Ok(_) => true,
             Err(e) => {
                 log::warn!("could not verify signature from ping request\n{:?}", e);
@@ -65,7 +61,7 @@ impl PingVerifier{
         }
     }
 
-    pub fn prepare(&self, headers: &HeaderMap, body: &discord_data_structs::Interaction) -> Result<(String, String), Box<dyn Error + Send + Sync>> {
+    pub fn prepare(&self, headers: &HeaderMap, body: &discord_data_structs::Interaction) -> Result<(Vec<u8>, String), Box<dyn Error + Send + Sync>> {
 
         let sig = match headers.get("X-Signature-Ed25519") {
             Some(s) => match s.to_str() {
@@ -98,12 +94,13 @@ impl PingVerifier{
         let body_string: String = match serde_json::to_string(body) {
             Ok(val) => val,
             Err(e) => {
-                log::debug!("coudln't convert json body to string"); 
+                log::debug!("coudln't convert json body to string {}", e); 
                 return Err("couldn't convert json body to string".into()); 
             }
         };
 
         let payload = format!("{}{}",time_stamp, body_string );
+        let payload = [time_stamp.as_bytes(), body_string.as_bytes()].concat();
         let sig = sig.to_string();
 
         Ok((payload, sig))
