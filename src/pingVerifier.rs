@@ -35,11 +35,15 @@ impl PingVerifier{
 
         let v_key: VerifyingKey = VerifyingKey::from_bytes(&byte_array)
             .expect("COULD NOT CONVERT BYTE ARRAY TO VERIFYING KEY");
-        PingVerifier { verifying_key: v_key } 
+        
+        PingVerifier { 
+            verifying_key: v_key 
+        } 
     }
 
     pub fn verify(&self, payload: &str, signature: &str) -> bool {
-        let mut sig_byte_array: [u8; SIGNATURE_LENGTH] = [0; SIGNATURE_LENGTH]; 
+        let mut sig_byte_array: [u8; SIGNATURE_LENGTH] = [0; SIGNATURE_LENGTH];
+
         match hex::decode_to_slice(&signature, &mut sig_byte_array) {
             Ok(()) => log::info!("successfully decoded provided X-Signature-Ed25519"),
             Err(e) => {
@@ -49,7 +53,8 @@ impl PingVerifier{
         }
         
         let sig: Signature =  Signature::from_bytes(&sig_byte_array); 
-        println!("[DEBUG] signature\n{}\npayload\n{}\n\t", sig, payload);
+
+        log::debug!("signature\n{}\npayload\n{}\n\t", sig, payload);
 
         match self.verifying_key.verify_strict(&payload.as_bytes(), &sig) {
             Ok(_) => true,
@@ -94,7 +99,7 @@ impl PingVerifier{
             Ok(val) => val,
             Err(e) => {
                 log::debug!("coudln't convert json body to string"); 
-                String::from("")
+                return Err("couldn't convert json body to string".into()); 
             }
         };
 
