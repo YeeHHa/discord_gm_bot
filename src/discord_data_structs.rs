@@ -17,6 +17,7 @@ pub struct Interaction {
 
     pub r#type: u8,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<AppCommand>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
