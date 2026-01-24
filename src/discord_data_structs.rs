@@ -65,29 +65,36 @@ pub struct Commands {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct User {
-    pub avatar: String,
-    #[serde(skip)]
-    pub avatar_decoration_data: Option<AvatarDecorationData>,
-	pub bot: bool,
-    #[serde(skip)]
-	pub clan: Option<String>,
-    #[serde(skip)]
-    pub collectibles: Option<String>,
-	pub discriminator: String,
-    #[serde(skip)]
-	pub display_name_styles: Option<String>,
-	pub global_name: String,
 	pub id: String,
-    #[serde(skip)]
-	pub primary_guild: Option<String>,
-	pub public_flags: u32,
-	pub system: bool,
+	pub username: String, 
+	pub discriminator: String,
+	pub global_name: String,
+    pub avatar: String,
+	pub bot: Option<bool>,
+	pub system: Option<bool>,
     #[serde(skip)]
     pub mfa_enabled: Option<bool>,
     #[serde(skip)]
     pub banner: Option<String>,
-    pub locale: String,
-	pub username: String, 
+    #[serde(skip)]
+    pub accent_color: Option<u32>,
+    pub locale: Option<String>,
+    #[serde(skip)]
+    pub verified: Option<bool>,
+    #[serde(skip)]
+    pub email: Option<String>,
+    #[serde(skip)]
+    pub flags: Option<u32>,
+    #[serde(skip)]
+    pub premium_type: Option<u32>,
+    #[serde(skip)]
+    pub public_flags: Option<u32>,
+    #[serde(skip)]
+    pub avatar_decoration_data: Option<AvatarDecorationData>,
+    #[serde(skip)]
+    pub collectibles: Option<String>,
+    #[serde(skip)]
+    pub primary_guild: Option<PrimaryGuild>
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -96,3 +103,11 @@ pub struct AvatarDecorationData {
     pub sku_id: String
 }
 
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct PrimaryGuild {
+    pub identity_guild_id: Option<String>,
+    pub identity_enabled: Option<bool>,
+    pub tag: String,
+    pub badge: String
+}
