@@ -151,6 +151,7 @@ async fn pong(header: HeaderMap, body: Json<Interaction>) -> impl IntoResponse {
         };   
        
         if !ping_verifier.verify(&payload_sig.0, &payload_sig.1) {
+            log::error!("could not verify ping sig");
             return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::Pong { r#type: 1})) 
         }
 

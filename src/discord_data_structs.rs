@@ -1,3 +1,5 @@
+use std::hash::Hash;
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -10,36 +12,56 @@ pub enum AuthorizingIntegrationOwner {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Interaction {
     pub id: String,
+
     pub application_id: String,
+
     pub r#type: u8,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<AppCommand>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub guild: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub guild_id: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub channel: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub channel_id: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub member: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<User>,   
+
     pub token: String,
+
     pub version: u32,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+
     pub app_permissions: String,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub locale: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub guild_locale: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub entitlements: Option<Vec<Entitlement>>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub authorizing_integration_owners: Option<AuthorizingIntegrationOwners>, 
+    pub authorizing_integration_owners: Option<HashMap<String, AuthorizingIntegrationOwner>>, 
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub context: Option<String>,
+
     pub attachment_size_limit: u32,
 }
 #[derive(Serialize, Deserialize, Debug)]
@@ -77,36 +99,54 @@ pub struct Commands {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct User {
 	pub id: String,
-	pub username: String, 
-	pub discriminator: String,
-	pub global_name: String,
+	
+    pub username: String, 
+	
+    pub discriminator: String,
+	
+    pub global_name: String,
+   
     pub avatar: String,
+  
     #[serde(skip_serializing_if = "Option::is_none")]
 	pub bot: Option<bool>,
+ 
     #[serde(skip_serializing_if = "Option::is_none")]
 	pub system: Option<bool>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mfa_enabled: Option<bool>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub banner: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub accent_color: Option<u32>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub locale: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub verified: Option<bool>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub flags: Option<u32>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub premium_type: Option<u32>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub public_flags: Option<u32>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub avatar_decoration_data: Option<AvatarDecorationData>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub collectibles: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub primary_guild: Option<PrimaryGuild>
 }
