@@ -135,7 +135,7 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn pong(header: HeaderMap, body: Json<Interaction>) -> impl IntoResponse {
+async fn pong(header: HeaderMap, Json(body): Json<Interaction>) -> impl IntoResponse {
     log::info!("VERIFICAITON OF PING BEGIN");
     log::info!("{:?}", body);
     let interaction_type = body.r#type;

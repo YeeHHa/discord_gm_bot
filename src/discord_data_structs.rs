@@ -17,7 +17,6 @@ pub struct Interaction {
 
     pub r#type: u8,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<AppCommand>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -53,10 +52,8 @@ pub struct Interaction {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub guild_locale: Option<String>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub entitlements: Option<Vec<Entitlement>>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub authorizing_integration_owners: Option<HashMap<String, AuthorizingIntegrationOwner>>, 
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -108,10 +105,8 @@ pub struct User {
    
     pub avatar: String,
   
-    #[serde(skip_serializing_if = "Option::is_none")]
 	pub bot: Option<bool>,
  
-    #[serde(skip_serializing_if = "Option::is_none")]
 	pub system: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -138,10 +133,8 @@ pub struct User {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub premium_type: Option<u32>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub public_flags: Option<u32>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub avatar_decoration_data: Option<AvatarDecorationData>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
