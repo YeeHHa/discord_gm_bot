@@ -9,7 +9,7 @@ use std::{
     path::Path,
     env
 };
-
+use bytes::Bytes;
 use env_logger;
 use axum::{
     Router, 
@@ -135,31 +135,36 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn pong(header: HeaderMap, Json(body): Json<Interaction>) -> impl IntoResponse {
+async fn pong(header: HeaderMap, body: Body) -> impl IntoResponse {
+    
     log::info!("VERIFICAITON OF PING BEGIN");
-    log::info!("{:?}", body);
-    let interaction_type = body.r#type;
-    if interaction_type == 1 {
-        let ping_verifier: PingVerifier = PingVerifier::new();
+    log::debug!("{:?}", body);
 
-        let payload_sig = match ping_verifier.prepare(&header, &body)  {
-            Ok(p_s) => p_s,
-            Err(e) => {
-                log::debug!("unable to create payload and signature");
-                return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::Pong { r#type: 1}))
-            }
-        };   
-       
-        if !ping_verifier.verify(&payload_sig.0, &payload_sig.1) {
-            log::error!("could not verify ping sig");
+    let body_bytes: Bytes = match axum::body::to_bytes(body, usize::MAX).await {
+        Ok(b) => b,
+        Err(e) => {
+            log::error!("could not convert body to bytes\n{}", e);
             return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::Pong { r#type: 1})) 
         }
+    };
 
+    let ping_verifier: PingVerifier = PingVerifier::new();
 
-        return (StatusCode::OK, Json(discord_data_structs::Pong { r#type: 1}))
+    let bytes_to_verify: Bytes = body_bytes.clone();
+    let payload_sig = match ping_verifier.prepare(&header, bytes_to_verify)  {
+        Ok(p_s) => p_s,
+        Err(e) => {
+            log::error!("unable to create payload and signature for verification\n{}", e);
+            return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::Pong { r#type: 1}))
+        }
+    };
+
+    if !ping_verifier.verify(&payload_sig.0, &payload_sig.1) {
+        return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::Pong { r#type: 1})) 
     }
 
-    return  (StatusCode::UNAUTHORIZED, Json(discord_data_structs::Pong { r#type: 1}));
+    return (StatusCode::OK, Json(discord_data_structs::Pong { r#type: 1}))
+
 }
 
 
@@ -173,24 +178,7 @@ async fn init(
         Some(c) => c.clone(),
         None => String::from("")
     };
-    if interaction_type == 1 {
-        let ping_verifier: PingVerifier = PingVerifier::new();
-
-        let payload_sig = match ping_verifier.prepare(&header, &body)  {
-            Ok(p_s) => p_s,
-            Err(e) => {
-                log::debug!("unable to create payload and signature");
-                return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
-            }
-        };   
-       
-        if !ping_verifier.verify(&payload_sig.0, &payload_sig.1) {
-            return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::ResponseOject { r#type: 1, data: None})) 
-        }
-
-
-        return (StatusCode::OK, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
-    }
+    
 
     {
         log::debug!("not ping interation");
@@ -277,26 +265,6 @@ async fn action(
     let mut file_name: String = String::from("application_test.json");
     let interaction_type = body.r#type;
 
-    if interaction_type == 1 {
-        file_name = String::from("ping_test.json");
-
-        let ping_verifier: PingVerifier = PingVerifier::new();
-
-        let payload_sig = match ping_verifier.prepare(&headers, &body)  {
-            Ok(p_s) => p_s,
-            Err(e) => {
-                log::debug!("unable to create payload and signature");
-                return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
-            }
-        };   
-       
-        if !ping_verifier.verify(&payload_sig.0, &payload_sig.1) {
-            return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::ResponseOject { r#type: 1, data: None})) 
-        }
-
-
-        return (StatusCode::OK, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
-    } 
 
 
     let p = Path::new(&file_name);

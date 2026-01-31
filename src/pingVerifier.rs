@@ -2,8 +2,9 @@ use hex;
 use std::env;
 use std::error::Error;
 use axum::http::{
-    HeaderMap
+    HeaderMap,
 };
+use bytes::Bytes;
 use ed25519_dalek::{
     Verifier, 
     VerifyingKey,
@@ -61,7 +62,7 @@ impl PingVerifier{
         }
     }
 
-    pub fn prepare(&self, headers: &HeaderMap, body: &discord_data_structs::Interaction) -> Result<(Vec<u8>, String), Box<dyn Error + Send + Sync>> {
+    pub fn prepare(&self, headers: &HeaderMap, body: Bytes) -> Result<(Vec<u8>, String), Box<dyn Error + Send + Sync>> {
 
         let sig = match headers.get("X-Signature-Ed25519") {
             Some(s) => match s.to_str() {
@@ -91,16 +92,7 @@ impl PingVerifier{
             }
         };
 
-        let body_string: String = match serde_json::to_string(body) {
-            Ok(val) => val,
-            Err(e) => {
-                log::debug!("coudln't convert json body to string {}", e); 
-                return Err("couldn't convert json body to string".into()); 
-            }
-        };
-
-        let payload = format!("{}{}",time_stamp, body_string );
-        let payload = [time_stamp.as_bytes(), body_string.as_bytes()].concat();
+        let payload = [time_stamp.as_bytes(), &body].concat();
         let sig = sig.to_string();
 
         Ok((payload, sig))
