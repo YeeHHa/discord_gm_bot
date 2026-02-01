@@ -71,6 +71,20 @@ pub struct ResponseOject {
     pub r#type: u8,
     pub data: Option<MessageObject>
 }
+
+impl ResponseOject {
+    pub fn new(message: String) -> ResponseOject {
+
+        let message = MessageObject{
+            content: message
+        };
+
+        ResponseOject {
+            r#type: 2,
+            data: Some(message)
+        } 
+    }
+}
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Pong {
     pub r#type: u8,

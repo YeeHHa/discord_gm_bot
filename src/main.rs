@@ -1,4 +1,3 @@
-use axum::extract;
 use tokio::{self, net::TcpListener};
 use log;
 use std::fs;
@@ -18,14 +17,16 @@ use axum::{
         StatusCode, 
         header::HeaderMap
     }, 
-    response::IntoResponse, 
     routing::{
-        get, 
         post
     },
     extract::{
         State,
         Json
+    },
+    response::{
+        IntoResponse,
+        Response
     }
 };
 use std::sync::{
@@ -39,6 +40,7 @@ use pingVerifier::PingVerifier;
 
 pub mod discord_data_structs;
 use discord_data_structs::Interaction;
+use crate::discord_data_structs::Pong;
 use crate::{
     campaign::Campaign, 
     discord_data_structs::{
@@ -59,6 +61,36 @@ use reqwest::{
 
 struct AppState {
     campaigns: Mutex<Vec<Campaign>>
+}
+
+enum AppResponse {
+    PongInstance(Pong),
+    PongInstanceFailed(Pong),
+    ResponseInstance(ResponseOject),
+    ResponseInstanceFailed(ResponseOject)
+}
+
+impl IntoResponse for AppResponse {
+
+    fn into_response(self) -> Response {
+
+        match self {
+            AppResponse::PongInstance(p) => {
+                (StatusCode::OK, Json(p)).into_response() 
+            },
+            AppResponse::PongInstanceFailed(p) => {
+                (StatusCode::UNAUTHORIZED, Json(p)).into_response()
+            },
+            AppResponse::ResponseInstance(r) => {
+                (StatusCode::OK, Json(r)).into_response()
+            },
+            AppResponse::ResponseInstanceFailed(r) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(r)).into_response()
+            }
+            
+        }
+
+    }
 }
 
 async fn install_commands(){
@@ -140,11 +172,12 @@ async fn pong(header: HeaderMap, body: Body) -> impl IntoResponse {
     log::info!("VERIFICAITON OF PING BEGIN");
     log::debug!("{:?}", body);
 
+    let pong = Pong { r#type: 1 };
     let body_bytes: Bytes = match axum::body::to_bytes(body, usize::MAX).await {
         Ok(b) => b,
         Err(e) => {
             log::error!("could not convert body to bytes\n{}", e);
-            return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::Pong { r#type: 1})) 
+            return AppResponse::PongInstance(pong) 
         }
     };
 
@@ -155,15 +188,40 @@ async fn pong(header: HeaderMap, body: Body) -> impl IntoResponse {
         Ok(p_s) => p_s,
         Err(e) => {
             log::error!("unable to create payload and signature for verification\n{}", e);
-            return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::Pong { r#type: 1}))
+            return AppResponse::PongInstanceFailed(pong) 
         }
     };
 
     if !ping_verifier.verify(&payload_sig.0, &payload_sig.1) {
-        return (StatusCode::UNAUTHORIZED, Json(discord_data_structs::Pong { r#type: 1})) 
+        return AppResponse::PongInstanceFailed(pong) 
     }
 
-    return (StatusCode::OK, Json(discord_data_structs::Pong { r#type: 1}))
+    let body_json: Json<Interaction>   = match Json::from_bytes(&body_bytes){
+        Ok(interaction) => interaction,
+        Err(e) => {
+            let message: String = String::from("500 unable to process request body");
+            log::error!("{}\n {}",message,  e);
+            let response = ResponseOject::new(message);
+            return AppResponse::ResponseInstanceFailed(response) 
+        }
+    };
+    
+
+    match body_json.r#type {
+        1 => AppResponse::PongInstance(pong),
+        2 => {
+            let f = std::fs::File::create("appcomand.json").unwrap();
+            let mut buf = std::io::BufWriter::new(f);
+            let message = String::from("app command acepted");
+            let r = ResponseOject::new(message);
+            AppResponse::ResponseInstance(r)
+        },
+        _ => {
+            let message = String::from("unable to process request");
+            let r = ResponseOject::new(message);
+            AppResponse::ResponseInstanceFailed(r)
+        } 
+    }
 
 }
 
