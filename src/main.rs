@@ -196,6 +196,8 @@ async fn pong(header: HeaderMap, body: Body) -> impl IntoResponse {
         return AppResponse::PongInstanceFailed(pong) 
     }
 
+    log::info!("VERIFICAITON OF PING SUCCESSFUL");
+    log::debug!("body bytes: {:?}", body_bytes);
     let body_json: Json<Interaction>   = match Json::from_bytes(&body_bytes){
         Ok(interaction) => interaction,
         Err(e) => {
@@ -206,7 +208,6 @@ async fn pong(header: HeaderMap, body: Body) -> impl IntoResponse {
         }
     };
     
-
     match body_json.r#type {
         1 => AppResponse::PongInstance(pong),
         2 => {
