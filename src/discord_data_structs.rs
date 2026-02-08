@@ -81,7 +81,7 @@ impl ResponseOject {
         };
 
         ResponseOject {
-            r#type: 2,
+            r#type: 4,
             data: Some(message)
         } 
     }

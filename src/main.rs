@@ -211,19 +211,15 @@ async fn pong(header: HeaderMap, body: Body) -> impl IntoResponse {
     match body_json.r#type {
         1 => AppResponse::PongInstance(pong),
         2 => {
-            let f = std::fs::File::create("appcomand.json").unwrap();
-            let mut buf = std::io::BufWriter::new(f);
-            serde_json::to_writer_pretty(&mut buf, &body_json.0).unwrap();
             let message = String::from("app command acepted");
             let r = ResponseOject::new(message);
+            log::debug!("response object {:?}", r);
             AppResponse::ResponseInstance(r)
         },
         3 => {
-            let f = std::fs::File::create("message_command.json").unwrap();
-            let mut buf = std::io::BufWriter::new(f);
-            serde_json::to_writer_pretty(&mut buf, &body_json.0 ).unwrap();
             let message = String::from("app command acepted");
             let r = ResponseOject::new(message);
+            log::debug!("response object {:?}", r);
             AppResponse::ResponseInstance(r)
         },
         _ => {
