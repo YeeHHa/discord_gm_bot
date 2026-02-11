@@ -1,5 +1,6 @@
 use tokio::{self, net::TcpListener};
 use log;
+use std::fmt::format;
 use std::fs;
 use std::str::FromStr;
 use std::{
@@ -159,16 +160,16 @@ async fn main() {
  
     let app = Router::new()
         .route("/interactions", post(pong))
-        .route("/init", post(init))
-        .route("/action", post(action))
         .with_state(app_state);
 
+    
     let listener: TcpListener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn pong(header: HeaderMap, body: Body) -> impl IntoResponse {
-    
+async fn pong(app_state: State<Arc<AppState>>, header: HeaderMap, body: Body) -> impl IntoResponse {
+
+     
     log::info!("VERIFICAITON OF PING BEGIN");
     log::debug!("{:?}", body);
 
@@ -207,14 +208,34 @@ async fn pong(header: HeaderMap, body: Body) -> impl IntoResponse {
             return AppResponse::ResponseInstanceFailed(response) 
         }
     };
-    
+
+    let data_to_process = body_json.0.clone();
+
     match body_json.r#type {
         1 => AppResponse::PongInstance(pong),
         2 => {
-            let message = String::from("app command acepted");
-            let r = ResponseOject::new(message);
-            log::debug!("response object {:?}", r);
-            AppResponse::ResponseInstance(r)
+            match body_json.0.data {
+                Some(d) => {
+                    log::debug!("processing command {}", d.name);
+                    let response: ResponseOject = match d.name.as_str() {
+                        
+                        "init" => init(app_state, &data_to_process).await,
+                        
+                        _ => {
+                            
+                            let message: String = format!("{} command not implmented", d.name);
+                            log::debug!("{}", message);
+                            ResponseOject::new(message)
+                        }
+                    };
+                    AppResponse::ResponseInstance(response)
+                },
+                None => {
+                    let message: String = String::from("no data found");
+                    let r: ResponseOject = ResponseOject::new(message);
+                    AppResponse::ResponseInstanceFailed(r)
+                }
+            }
         },
         3 => {
             let message = String::from("app command acepted");
@@ -234,44 +255,32 @@ async fn pong(header: HeaderMap, body: Body) -> impl IntoResponse {
 
 async fn init(
     app_state: State<Arc<AppState>>, 
-    header: HeaderMap, 
-    body: Json<Interaction> ) -> impl IntoResponse {
+    body: &Interaction) -> ResponseOject {
 
-    let interaction_type = body.r#type;
     let channel_id = match &body.channel_id{
-        Some(c) => c.clone(),
-        None => String::from("")
+        Some(c) => c,
+        None => "" 
     };
-    
+
+    log::info!("checking if channel {} is active", channel_id); 
 
     {
-        log::debug!("not ping interation");
         match app_state.campaigns.lock() {
             Ok(lock) => {
                 for campaign in &*lock{
                     log::debug!("{:?}", campaign);
                     if campaign.channel_id == channel_id {
                         if campaign.active == true { 
-                            let res_message = MessageObject {
-                                content: String::from("A campaign for this channel already exisits and is currently active")
-                            };
-
-                            let res_object = ResponseOject{
-                                r#type: 4,
-                                data: Some(res_message)
-                            };
-                            return (StatusCode::OK, Json(res_object))
+                            let message: String = String::from("A campaign for this channel already exisits and is currently active");
+                            log::error!("{}", message);
+                            let res_object = ResponseOject::new(message);
+                            return res_object
  
                         }else {
-                            let res_message: MessageObject = MessageObject { 
-                                content: String::from("A campaign for this channel already exists, but is not active. use command /start to begin!")  
-                            };
-                            let res_object: ResponseOject = ResponseOject { 
-                                r#type: 4, 
-                                data: Some(res_message) 
-                            };
-
-                            return (StatusCode::OK, Json(res_object))
+                            let message: String = String::from("A campaign for this channel already exists, but is not active. use command /start to begin!");
+                            log::debug!("{}",message);  
+                            let res_object: ResponseOject = ResponseOject::new(message); 
+                            return res_object
                         }
                     }
                 }
@@ -279,12 +288,10 @@ async fn init(
             },
             Err(e) => {
                 log::error!("unable to obtain lock for app state");
-                return (StatusCode::INTERNAL_SERVER_ERROR, Json(ResponseOject{ r#type: 255, data: None}))
+                return ResponseOject{ r#type: 255, data: None}
             }
         };
          
-    }
-    {
         log::info!("Creating new campaign for channel {}", channel_id);
 
         match app_state.campaigns.lock().as_mut() {
@@ -302,11 +309,11 @@ async fn init(
                     data: Some(mes_obj) 
                 };
 
-                return (StatusCode::OK, Json(res_obj))
+                return res_obj
             },
              Err(e) => {
                 log::error!("unable to obtain lock for app state");
-                return (StatusCode::INTERNAL_SERVER_ERROR, Json(ResponseOject{ r#type: 255, data: None}))
+                return ResponseOject{ r#type: 255, data: None}
             }
         }
     }

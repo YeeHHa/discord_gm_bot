@@ -9,7 +9,7 @@ pub enum AuthorizingIntegrationOwner {
     UserInstall(u64),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Interaction {
     pub id: String,
 
@@ -61,7 +61,7 @@ pub struct Interaction {
 
     pub attachment_size_limit: u32,
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AppCommand {
     pub name: String,
     pub r#type: u8,
@@ -108,7 +108,7 @@ pub struct Commands {
     pub commands: Vec<Command>
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct User {
 	pub id: String,
 	
@@ -159,14 +159,14 @@ pub struct User {
     pub primary_guild: Option<PrimaryGuild>
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct AvatarDecorationData {
     pub asset: String,
     pub sku_id: String
 }
 
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct PrimaryGuild {
     pub identity_guild_id: Option<String>,
     pub identity_enabled: Option<bool>,
@@ -177,7 +177,7 @@ pub struct PrimaryGuild {
 pub struct AuthorizingIntegrationOwners(pub Vec<AuthorizingIntegrationOwner>);
 
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Entitlement {
     pub id: String,
     pub sku_id: Option<String>,
@@ -190,7 +190,7 @@ pub struct Entitlement {
     pub guild_id: Option<String>,
     pub consumed: bool
 }
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Channel {
     pub id: String,
     pub r#type: u8,
@@ -234,7 +234,7 @@ pub struct Channel {
     pub default_forum_layout: Option<i32>
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Guild {
     pub id: Option<String>,
     pub name: Option<String>,
@@ -287,7 +287,7 @@ pub struct Guild {
     pub incidents_data: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Member {
     pub user: Option<User>,
     pub nick: Option<String>,
