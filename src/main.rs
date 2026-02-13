@@ -42,13 +42,13 @@ use pingVerifier::PingVerifier;
 pub mod discord_data_structs;
 use discord_data_structs::Interaction;
 use crate::discord_data_structs::Pong;
+use crate::player::Player;
 use crate::{
     campaign::Campaign, 
     discord_data_structs::{
         MessageObject, 
         ResponseOject,
         Commands,
-        Command
     }
 };
 use reqwest::{
@@ -220,7 +220,7 @@ async fn pong(app_state: State<Arc<AppState>>, header: HeaderMap, body: Body) ->
                     let response: ResponseOject = match d.name.as_str() {
                         
                         "init" => init(app_state, &data_to_process).await,
-                        
+                        "join" => join(app_state, &data_to_process).await,       
                         _ => {
                             
                             let message: String = format!("{} command not implmented", d.name);
@@ -257,74 +257,133 @@ async fn init(
     app_state: State<Arc<AppState>>, 
     body: &Interaction) -> ResponseOject {
 
-    let channel_id = match &body.channel_id{
+    let channel_id = match &body.channel_id {
         Some(c) => c,
         None => "" 
     };
 
     log::info!("checking if channel {} is active", channel_id); 
-
+    let message: String;
     {
-        match app_state.campaigns.lock() {
+        match app_state.campaigns.lock().as_mut() {
             Ok(lock) => {
-                for campaign in &*lock{
+                for campaign in lock.iter(){
                     log::debug!("{:?}", campaign);
                     if campaign.channel_id == channel_id {
                         if campaign.active == true { 
-                            let message: String = String::from("A campaign for this channel already exisits and is currently active");
+                            message = String::from("A campaign for this channel already exisits and is currently active");
                             log::error!("{}", message);
                             let res_object = ResponseOject::new(message);
                             return res_object
  
                         }else {
-                            let message: String = String::from("A campaign for this channel already exists, but is not active. use command /start to begin!");
+                            message = String::from("A campaign for this channel already exists, but is not active. use command /start to begin!");
                             log::debug!("{}",message);  
                             let res_object: ResponseOject = ResponseOject::new(message); 
                             return res_object
                         }
                     }
                 }
-                
+
+                log::info!("channel not found in campaigns - creating new campaign");
+
+                let new_campaign: Campaign = Campaign::new(channel_id);
+                log::debug!("campaigns before {:?}", lock);
+                lock.push(new_campaign);
+                log::debug!("campaings after {:?}", lock);
+
+                message = String::from("created new campaign for channel\nused command /join to join the campaign\nuse command /start to begin."); 
+                let res_object:ResponseOject = ResponseOject::new(message);
+                return res_object;
             },
             Err(e) => {
-                log::error!("unable to obtain lock for app state");
+                log::error!("unable to obtain lock for app state {}", e);
                 return ResponseOject{ r#type: 255, data: None}
             }
         };
-         
-        log::info!("Creating new campaign for channel {}", channel_id);
-
-        match app_state.campaigns.lock().as_mut() {
-            Ok(lock) => {
-                let campaign: Campaign = Campaign::new(&channel_id);
-
-                lock.push(campaign);
-
-                let mes_obj: MessageObject = MessageObject { 
-                    content: String::from("new campaign created for channel! use command /join to joing the campaign. use command /start to beign campaign")
-                };
-
-                let res_obj: ResponseOject = ResponseOject { 
-                    r#type: 4, 
-                    data: Some(mes_obj) 
-                };
-
-                return res_obj
-            },
-             Err(e) => {
-                log::error!("unable to obtain lock for app state");
-                return ResponseOject{ r#type: 255, data: None}
-            }
-        }
     }
 }
 
-async fn start() {
 
-}
 
-async fn join() {
+async fn join(
+    app_state: State<Arc<AppState>>,
+    body: &Interaction) -> ResponseOject {
     
+    let message: String;
+    let user = match &body.user {
+        Some(u) => u,
+        None => {
+            log::debug!("User data not found checking member data");
+            match &body.member {
+                Some(m) => {
+                    match &m.user {
+                        Some(m_user) => m_user,
+                        None => {
+                            log::error!("no user data in interaction payload");
+                            message = String::from("unable to add user to campaign");
+                            return ResponseOject::new(message)
+                        }
+                    }
+                },
+                None => {
+                    log::error!("no user data in interaction payload");
+                    message = String::from("unable to add user to campaign");
+                    return ResponseOject::new(message)
+                }
+            }
+        }
+    };
+
+    let channel_id = match &body.channel_id {
+        Some(channel) => channel,
+        None => {
+            log::error!("no channel id found in request body");
+            message = String::from("could no process command");
+            return ResponseOject::new(message)
+        }
+    };
+
+    match app_state.campaigns.lock().as_mut() {
+        Ok(lock) => {
+            log::debug!("got lock for join command");
+            for campaign in lock.iter_mut() {
+                if campaign.channel_id.as_str() == channel_id {
+                    log::debug!("found campaign {}", channel_id);
+                    for player in campaign.players.iter() {
+                        if player.id == user.id {
+                            let message = format!("Player {} has already joinned the campaign.\nuse command /start to beign!", player.display_name);
+                            log::info!("{}", message);
+                            return ResponseOject::new(message)                
+                        }
+                    }
+
+                    log::info!("user {} not found in campaign. creating new user",user.global_name);
+
+                    let new_player = Player::new(user.id.clone(), user.global_name.clone());
+
+                    campaign.players.push(new_player);
+
+                    log::info!("player {} added to campaign {}", user.global_name, campaign.channel_id);
+                    let mut message = format!("Welcome @{}! you have successfuly joined the campaign!\nCurrent Players:\n", user.global_name);
+
+                    let current_players = campaign.players.iter().map(|p| format!("{}\n", p.display_name)).collect::<String>(); 
+                    message += &current_players;
+
+                    return ResponseOject::new(message)
+
+                }
+            }
+            log::error!("campaign {} not found in app state", channel_id);
+            message = String::from("no campaign found for this channel\nuse /init command to start a new campaign");
+            return ResponseOject::new(message)
+        },
+        Err(e) => {
+            log::error!("unable to obtain mutex log for join command\n{}", e);
+            message = String::from("sorry, could process your request. try again later");
+            return ResponseOject::new(message)
+        }
+    };
 }
 
 async fn action(
