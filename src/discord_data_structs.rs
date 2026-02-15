@@ -1,4 +1,3 @@
-use std::hash::Hash;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
@@ -67,10 +66,16 @@ pub struct AppCommand {
     pub r#type: u8,
     pub id: String,
 }
+
+#[derive(Deserialize, Serialize, Debug)]
+pub enum ResponseData {
+    Message(MessageObject),
+    Modal(ActionModalData)
+} 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ResponseOject {
     pub r#type: u8,
-    pub data: Option<MessageObject>
+    pub data: Option<ResponseData>
 }
 
 impl ResponseOject {
@@ -82,8 +87,17 @@ impl ResponseOject {
 
         ResponseOject {
             r#type: 4,
-            data: Some(message)
+            data: Some(ResponseData::Message(message))
         } 
+    }
+
+    pub fn new_action_modal() -> ResponseOject {
+        let action_modal_data = ActionModalData::new();
+
+        ResponseOject {
+            r#type: 9,
+            data: Some(ResponseData::Modal(action_modal_data))
+        }
     }
 }
 #[derive(Deserialize, Serialize, Debug)]
@@ -302,4 +316,75 @@ pub struct Member {
     pub permissions: Option<String>,
     pub communication_disabled_until: Option<String>,
     pub avatar_decoration_data: Option<AvatarDecorationData>,
+}
+
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum ActionModalComponent {
+    TextInput(TextInput),
+    Label(Label),
+    Button(Button)
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct ActionModalData {
+    custom_id: String,
+    title: String,
+    components: Vec<ActionModalComponent>
+}
+
+impl ActionModalData {
+    pub fn new() -> ActionModalData {
+        let text_input = TextInput {
+            r#type: 4,
+            custom_id: String::from("action_input"),
+            style: 2,
+            label: String::from("action input")
+        };
+
+        let label = Label {
+            r#type: 18,
+            label: String::from("What action will you take epic adventurer!?"),
+            description: String::from("Please enter the action you want to take in the campaign"),
+            component: text_input
+        };
+
+        let button = Button {
+            r#type: 2,
+            label: String::from("ROLL"),
+            custom_id: String::from("submit_action")
+        };
+
+        ActionModalData {
+            custom_id: String::from("action_modal"),
+            title: String::from("Action Modal"),
+            components: vec![
+                ActionModalComponent::Label(label),
+                ActionModalComponent::Button(button)
+            ]
+        } 
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Label {
+    pub r#type: u8,
+    pub label: String,
+    pub description: String,
+    pub component: TextInput 
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct TextInput {
+    pub r#type: u8,
+    pub custom_id: String,
+    pub style: u8,
+    pub label: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Button {
+    pub r#type: u8,
+    pub label: String,
+    pub custom_id: String
 }

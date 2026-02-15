@@ -15,6 +15,12 @@
             "name": "join",
             "type": 1,
             "description": "join the current Campagin! your user will be added to the rotation."
+        },
+        {
+            "name": "action",
+            "type": 1,
+            "description": "submit what action you want to take in the campaign"
+            
         }
     ]
 }

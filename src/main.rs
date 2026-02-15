@@ -9,7 +9,7 @@ use std::{
     path::Path,
     env
 };
-use bytes::Bytes;
+use bytes::{Bytes, buf};
 use env_logger;
 use axum::{
     Router, 
@@ -141,6 +141,7 @@ async fn install_commands(){
     }
 
 }
+
 #[tokio::main]
 async fn main() {
     env_logger::init();
@@ -220,7 +221,8 @@ async fn pong(app_state: State<Arc<AppState>>, header: HeaderMap, body: Body) ->
                     let response: ResponseOject = match d.name.as_str() {
                         
                         "init" => init(app_state, &data_to_process).await,
-                        "join" => join(app_state, &data_to_process).await,       
+                        "join" => join(app_state, &data_to_process).await,
+                        "action" => gen_action_modal().await,       
                         _ => {
                             
                             let message: String = format!("{} command not implmented", d.name);
@@ -237,8 +239,13 @@ async fn pong(app_state: State<Arc<AppState>>, header: HeaderMap, body: Body) ->
                 }
             }
         },
-        3 => {
-            let message = String::from("app command acepted");
+        5 => {
+
+            let f = std::fs::File::create("modal_submit_test.json").expect("could not create file for modal submit test");
+            let mut buf = std::io::BufWriter::new(f);
+            serde_json::to_writer_pretty(&mut buf, &data_to_process);
+
+            let message = String::from("modal submit accepted");
             let r = ResponseOject::new(message);
             log::debug!("response object {:?}", r);
             AppResponse::ResponseInstance(r)
@@ -384,6 +391,14 @@ async fn join(
             return ResponseOject::new(message)
         }
     };
+}
+
+async fn gen_action_modal() -> ResponseOject {
+    log::info!("action command received - generating action modal response");
+
+    let r = ResponseOject::new_action_modal();
+    log::debug!("response object {:?}", serde_json::to_string(&r).unwrap());
+    r
 }
 
 async fn action(
