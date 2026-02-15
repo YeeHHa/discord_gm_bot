@@ -41,7 +41,7 @@ use pingVerifier::PingVerifier;
 
 pub mod discord_data_structs;
 use discord_data_structs::Interaction;
-use crate::discord_data_structs::Pong;
+use crate::discord_data_structs::{AppCommand, DataValues, Pong};
 use crate::player::Player;
 use crate::{
     campaign::Campaign, 
@@ -217,15 +217,27 @@ async fn pong(app_state: State<Arc<AppState>>, header: HeaderMap, body: Body) ->
         2 => {
             match body_json.0.data {
                 Some(d) => {
-                    log::debug!("processing command {}", d.name);
-                    let response: ResponseOject = match d.name.as_str() {
+
+                    let data = match d {
+                        DataValues::App(data) => data,
+                        _ => {
+                            log::info!("not supported");
+                            AppCommand {
+                                name: String::from("NA"),
+                                r#type: 255,
+                                id: String::from("NA")
+                            }     
+                        }
+                    };
+                    log::debug!("processing command {}", data.name);
+                    let response: ResponseOject = match data.name.as_str() {
                         
                         "init" => init(app_state, &data_to_process).await,
                         "join" => join(app_state, &data_to_process).await,
                         "action" => gen_action_modal().await,       
                         _ => {
                             
-                            let message: String = format!("{} command not implmented", d.name);
+                            let message: String = format!("{} command not implmented", data.name);
                             log::debug!("{}", message);
                             ResponseOject::new(message)
                         }
@@ -243,7 +255,7 @@ async fn pong(app_state: State<Arc<AppState>>, header: HeaderMap, body: Body) ->
 
             let f = std::fs::File::create("modal_submit_test.json").expect("could not create file for modal submit test");
             let mut buf = std::io::BufWriter::new(f);
-            serde_json::to_writer_pretty(&mut buf, &data_to_process);
+            let _ = serde_json::to_writer_pretty(&mut buf, &data_to_process);
 
             let message = String::from("modal submit accepted");
             let r = ResponseOject::new(message);

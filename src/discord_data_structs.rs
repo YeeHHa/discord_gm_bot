@@ -8,6 +8,13 @@ pub enum AuthorizingIntegrationOwner {
     UserInstall(u64),
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum DataValues {
+    App(AppCommand),
+    Modal(ActionModelResponse)
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Interaction {
     pub id: String,
@@ -16,7 +23,7 @@ pub struct Interaction {
 
     pub r#type: u8,
 
-    pub data: Option<AppCommand>,
+    pub data: Option<DataValues>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub guild: Option<Guild>,
@@ -68,6 +75,7 @@ pub struct AppCommand {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
+#[serde(untagged)]
 pub enum ResponseData {
     Message(MessageObject),
     Modal(ActionModalData)
@@ -320,10 +328,24 @@ pub struct Member {
 
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum ActionModalComponent {
     TextInput(TextInput),
     Label(Label),
     Button(Button)
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum ActionModelResponseComponents {
+    Label(LabelResponse)
+}
+
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct ActionModelResponse {
+    custom_id: String,
+    components: Vec<ActionModelResponseComponents>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -339,28 +361,28 @@ impl ActionModalData {
             r#type: 4,
             custom_id: String::from("action_input"),
             style: 2,
-            label: String::from("action input")
         };
 
         let label = Label {
             r#type: 18,
             label: String::from("What action will you take epic adventurer!?"),
-            description: String::from("Please enter the action you want to take in the campaign"),
             component: text_input
         };
 
+        /*
         let button = Button {
             r#type: 2,
             label: String::from("ROLL"),
-            custom_id: String::from("submit_action")
+            custom_id: String::from("submit_action"),
+            style: 1
         };
-
+        */
         ActionModalData {
             custom_id: String::from("action_modal"),
             title: String::from("Action Modal"),
             components: vec![
                 ActionModalComponent::Label(label),
-                ActionModalComponent::Button(button)
+                //ActionModalComponent::Button(button)
             ]
         } 
     }
@@ -370,21 +392,36 @@ impl ActionModalData {
 pub struct Label {
     pub r#type: u8,
     pub label: String,
-    pub description: String,
     pub component: TextInput 
 }
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct LabelResponse {
+    r#type: u8,
+    id: u32,
+    component: TextResponse
+}
+
+
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct TextInput {
     pub r#type: u8,
     pub custom_id: String,
     pub style: u8,
-    pub label: String,
+}
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct TextResponse {
+    pub r#type: u8,
+    pub id: u32,
+    pub custom_id: String,
+    pub value: String
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Button {
     pub r#type: u8,
     pub label: String,
-    pub custom_id: String
+    pub custom_id: String,
+    pub style: u8
 }
