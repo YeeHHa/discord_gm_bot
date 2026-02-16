@@ -251,17 +251,7 @@ async fn pong(app_state: State<Arc<AppState>>, header: HeaderMap, body: Body) ->
                 }
             }
         },
-        5 => {
-
-            let f = std::fs::File::create("modal_submit_test.json").expect("could not create file for modal submit test");
-            let mut buf = std::io::BufWriter::new(f);
-            let _ = serde_json::to_writer_pretty(&mut buf, &data_to_process);
-
-            let message = String::from("modal submit accepted");
-            let r = ResponseOject::new(message);
-            log::debug!("response object {:?}", r);
-            AppResponse::ResponseInstance(r)
-        },
+        5 => AppResponse::ResponseInstance(action(app_state, &data_to_process).await),
         _ => {
             let message = String::from("unable to process request");
             let r = ResponseOject::new(message);
@@ -415,36 +405,10 @@ async fn gen_action_modal() -> ResponseOject {
 
 async fn action(
     app_state: State<Arc<AppState>>,
-    headers: HeaderMap,
-    Json(body): Json<Interaction>
-    ) -> impl IntoResponse {
-
-    let mut file_name: String = String::from("application_test.json");
-    let interaction_type = body.r#type;
+    body: &Interaction
+    ) -> ResponseOject {
 
 
-
-    let p = Path::new(&file_name);
-
-    log::info!("opening file {}", p.display());
-    
-    let mut file = match File::create(p){
-        Ok(f) => f,
-        Err(e) => panic!("could not create file {}\n{}", p.display(), e)
-        
-    };
-    
-    let buf = serde_json::to_string_pretty(&body).expect("couldn't convert struct to string");
-    match file.write_all(&buf.as_bytes()){
-        Ok(a) => {
-            log::info!("file written");
-            (StatusCode::OK, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
-        },
-        Err(e) => {
-            log::error!("couldn't write to file {}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(discord_data_structs::ResponseOject { r#type: 1, data: None}))
-        }
-    }
-
+    ResponseOject::new(String::from("action command received"))
 
 }
