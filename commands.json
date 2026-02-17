@@ -21,6 +21,12 @@
             "type": 1,
             "description": "submit what action you want to take in the campaign"
             
+        },
+        {
+            "name": "start",
+            "type": 1,
+            "description": "use this command to start the campaign after all the participants have joinned"
+            
         }
     ]
 }

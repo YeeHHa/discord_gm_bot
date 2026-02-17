@@ -232,9 +232,10 @@ async fn pong(app_state: State<Arc<AppState>>, header: HeaderMap, body: Body) ->
                     log::debug!("processing command {}", data.name);
                     let response: ResponseOject = match data.name.as_str() {
                         
-                        "init" => init(app_state, &data_to_process).await,
-                        "join" => join(app_state, &data_to_process).await,
-                        "action" => gen_action_modal().await,       
+                        "init"      => init(app_state, &data_to_process).await,
+                        "join"      => join(app_state, &data_to_process).await,
+                        "action"    => gen_action_modal().await,       
+                        "start"     => start(app_state, &data_to_process).await,
                         _ => {
                             
                             let message: String = format!("{} command not implmented", data.name);
@@ -313,7 +314,48 @@ async fn init(
     }
 }
 
+async fn start(
+    app_state: State<Arc<AppState>>,
+    body: &Interaction) -> ResponseOject {
 
+    log::info!("attempting to start campain");
+
+    let channel_id = match &body.channel_id {
+        Some(channel) => channel,
+        None => {
+            return ResponseOject::new(String::from("sorry couldn't process that request"))
+        }
+    };
+
+    match app_state.campaigns.lock().as_mut() {
+        Ok(lock) => {
+            log::info!("got lock for /start");
+
+            if let Some(campaign) = lock.iter_mut().find(|c| c.channel_id.as_str() == channel_id) {
+                if campaign.active {
+                    return ResponseOject::new(String::from("the campaign has already started"))
+                }else {
+                    campaign.active = true;
+                    campaign.next_player();
+                    let current_player = match &campaign.current_player {
+                        Some(p) => p,
+                        None => return ResponseOject::new(String::from("coudl not get current player"))
+                    };
+
+                    let message = String::from(format!("The campaign has started!\n{} gets to start.", current_player.display_name));
+                    return ResponseOject::new(message)
+                    
+                }
+            }else {
+                return ResponseOject::new(String::from("No campaign found for this channel.\nUse /init to initiate the campaign"))
+            }
+        },
+        Err(e) => {
+            log::error!("could not get lock\n{}", e);
+            return ResponseOject::new(String::from("Sorry couldn't process that command"))
+        }
+    }
+}
 
 async fn join(
     app_state: State<Arc<AppState>>,
@@ -409,6 +451,74 @@ async fn action(
     ) -> ResponseOject {
 
 
+    let user = match &body.user {
+        Some(u) => u,
+        None => {
+            log::debug!("User data not found checking member data");
+            match &body.member {
+                Some(m) => {
+                    match &m.user {
+                        Some(m_user) => m_user,
+                        None => {
+                            log::error!("no user data in interaction payload");
+                            return ResponseOject::new(String::from("unable to add user to campaign"))
+                        }
+                    }
+                },
+                None => {
+                    log::error!("no user data in interaction payload");
+                    return ResponseOject::new(String::from("unable to add user to campaign"))
+                }
+            }
+        }
+    };
+
+    let channel_id = match &body.channel_id {
+        Some(channel) => channel,
+        None => {
+            log::error!("no channel id found in request body");
+            return ResponseOject::new(String::from("could no process command"))
+        }
+    };
+
+    match app_state.campaigns.lock().as_mut(){
+        Ok(lock) => {
+
+            if let Some(campaign) = lock.iter_mut().find(|c| c.channel_id == channel_id.as_str()) {
+                if campaign.active {
+                    if let Some(player) = &campaign.current_player {
+                        if user.id == player.id {
+                            log::info!("player found");
+
+                            log::debug!("channging current player to next current ");
+                            campaign.next_player();
+                            log::debug!("current player is now {:?}", campaign.current_player); 
+                            return ResponseOject::new(String::from("taking the players action and doing the stuff"))
+                        }else {
+                            let current_user_name = player.display_name.as_str();
+                            let user_name = user.global_name.as_str();
+                            let message = format!("The current player is {}\nwait your turn{}",
+                                current_user_name,
+                                user_name); 
+                            return ResponseOject::new(message)
+                        }
+                    }else{
+
+                        return ResponseOject::new(String::from("current player not selected"))
+                    }
+                }else {
+                    return ResponseOject::new(String::from("the campaign has not started!\nUse command /start to begin"))
+                }
+            }else {
+                log::info!("channel id {} not found in active campaigns", channel_id);
+                return ResponseOject::new(String::from("this channel does not currently have an active champaign\nUse command /init to start one."))
+            }
+        },
+        Err(e) => {
+            log::error!("could not get lock for actions");
+            ResponseOject::new(String::from("could not process request"))
+        } 
+    };
     ResponseOject::new(String::from("action command received"))
 
 }
